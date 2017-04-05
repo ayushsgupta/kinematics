@@ -1,26 +1,26 @@
 RobotArm bottom;
 RobotArm top;
 
-float target_x = 0.0;
-float target_y = 0.0;
+PVector target;
+
+float target_angle_bottom;
+float target_angle_top;
 
 void setup() {
   size(800, 800);
   bottom = new RobotArm(width / 2, height / 2);
   //bottom = new RobotArm(0, 0);
   top = new RobotArm(bottom);
-  
+  target = new PVector();
 }
 
 void draw() {
   background(45, 167, 255);
   handleDrawUpdate();
-  handleTarget();
-  if (readjustPossible() && notOriginTarget()) {
+  handleTarget(); 
+  if (readjustPossible()) {
     adjustToTarget();
   }
-  line(0, 0, target_x, target_y);
-  print("ENDPOINT: (" + top.b.x + ", " + top.b.y + ")\n");
 }
 
 void handleTarget() {
@@ -30,17 +30,15 @@ void handleTarget() {
 
 void setTarget() {
   if (mousePressed == true) {
-    target_x = mouseX;
-    target_y = mouseY;
+    target.set(mouseX, mouseY); 
   }
 }
 
 void drawTarget() {
-  if (notOriginTarget()){
-    stroke(0);
-    ellipse(target_x, target_y, 5, 5);
-    stroke(255);
-  }
+  stroke(0);
+  ellipse(target.x, target.y, 5, 5);
+  strokeWeight(2);
+  line(0, 0, target.x, target.y);
 }
 
 void handleDrawUpdate() {
@@ -51,68 +49,38 @@ void handleDrawUpdate() {
 }
 
 boolean readjustPossible() {
-  return ((bottom.len + top.len) >= dist(bottom.a.x, bottom.a.y, target_x, target_y));
-}
-
-boolean notOriginTarget() {
-  return (target_x != 0.0 && target_y != 0.0);
+  return ((bottom.len + top.len) >= dist(bottom.a.x, bottom.a.y, target.x, target.y));
 }
 
 void adjustToTarget() {
-  float target_distance = dist(bottom.a.x, bottom.a.y, target_x, target_y);
-  float bottom_angle = lawOfCosines(top.len, bottom.len, target_distance);
-  print("BOTTOM ANGLE: " +  degrees(bottom_angle) + "\n");
+  PVector midpoint;
+  midpoint = new PVector(((bottom.a.x + target.x) / 2), ((bottom.a.y + target.y) / 2));
   
-  PVector to_target;
-  to_target = new PVector(target_x, target_y);
-  print("TARGET HEADING: " + degrees(to_target.heading()) + "\n");
+  
   
   PVector direction;
-  direction = to_target.sub(bottom.a);
-  float direction_heading = direction.heading();
-  print("DIRECTION HEADING: " + degrees(direction_heading) + "\n");
+  direction = target.copy().sub(bottom.a);
+  line(bottom.a.x, bottom.a.y, bottom.a.x + direction.x, bottom.a.y + direction.y);
   
-  float target_heading_bottom = (target_x <= width / 2) ? direction_heading - bottom_angle : direction_heading + bottom_angle;
-  float target_heading_top = (target_x <= width / 2) ? PI - (2 * bottom_angle) : PI + (2 * bottom_angle);
+  float perpendicular = (target.x >= width / 2) ? direction.heading() - radians(90) : direction.heading() + radians(90);
+  PVector altitude;
+  altitude = new PVector(1, 0);
+  altitude.rotate(perpendicular);
+  altitude.setMag(pythagoreanLeg((direction.mag() / 2), top.len));
   
-  print("TARGET HEADING BOTTOM: " + degrees(target_heading_bottom) + "\n");
-  print("TARGET HEADING TOP: " + degrees(target_heading_top) + "\n");
+  PVector join_point;
+  join_point = new PVector(altitude.x + midpoint.x, altitude.y + midpoint.y);
+  line(midpoint.x, midpoint.y, join_point.x, join_point.y);
   
-  //target_heading_bottom -= radians(90.0);
-  //target_heading_top -= radians(90.0);
+  PVector bottom_leg;
+  bottom_leg = join_point.copy().sub(bottom.a);
   
-  bottom.setSelfAngle(target_heading_bottom);
-  top.setSelfAngle(target_heading_top);
-  top.correctHeading();
-}
-
-float lawOfCosines(float a, float b, float c) {
-    return acos((pow(a, 2) - pow(b, 2) - pow(c, 2)) / (-2 * b * c));
-}
-
-
-/*
-void adjustToTarget() {
-  PVector to_target;
-  PVector direction;
-  
-  to_target = new PVector(target_x, target_y);
-  direction = to_target.sub(bottom.a);
-    
-  float direction_heading = direction.heading();
-  float direction_mag = direction.mag();
-  float diff_angle = lawOfCosines(direction_mag);
-  
-  float target_heading_bottom = direction_heading - diff_angle;
-  float target_heading_top = 180.0 - (2 * diff_angle);
-  
-  bottom.setSelfAngle(target_heading_bottom);
-  top.setSelfAngle(target_heading_top);
+  bottom.setByEndpoint(join_point);
+  //top.setByEndpoint(target);
   
 }
 
-float lawOfCosines(float mag) {
-  float expr = (pow(bottom.len, 2) + pow(mag, 2) - pow(top.len, 2)) / (2 * bottom.len * mag);
-  float diff_angle = acos(expr);
-  return diff_angle;
-}*/
+float pythagoreanLeg(float leg, float hyp) {
+  float other_leg = sqrt(pow(hyp, 2) - pow(leg, 2));
+  return other_leg;
+}

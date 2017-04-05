@@ -20,6 +20,7 @@ class RobotArm {
   }
   
   void findEndpoint() {
+    selfCalcEqual();
     float dx = len * cos(calc_angle);
     float dy = len * sin(calc_angle);
     b.set(a.x + dx, a.y + dy);
@@ -41,7 +42,7 @@ class RobotArm {
  
   
   void moveAngle(float diff) {
-    self_angle += diff;
+    self_angle -= diff;
     selfCalcEqual();
   }
   
@@ -70,5 +71,12 @@ class RobotArm {
     float between = PVector.angleBetween(header, parent_header);
     float diff = abs(between - 90.0) * 2;
     calc_angle += diff;
+  }
+  
+  void setByEndpoint(PVector endpoint) {
+    self_angle = acos((endpoint.x - a.x) / len);
+    if (endpoint.y <= height / 2) {
+      self_angle *= -1;
+    }
   }
 }
