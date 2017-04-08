@@ -1,2 +1,2 @@
 # kinematics
-Kinematics based on that from Coding Train. Potential applications to robotics that I should look into. 
+Kinematics (partly based on that from Coding Train). Potential applications to robotics that I am looking into. 
